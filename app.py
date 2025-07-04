@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for better styling
+# Custom CSS for better styling with improved visibility
 st.markdown("""
 <style>
     .metric-card {
@@ -26,16 +26,28 @@ st.markdown("""
         border-left: 4px solid #ff6b6b;
     }
     .survival-card {
-        background-color: #e8f5e8;
-        padding: 1rem;
+        background-color: #d4edda;
+        padding: 1.5rem;
         border-radius: 0.5rem;
-        border-left: 4px solid #51cf66;
+        border-left: 4px solid #28a745;
+        border: 2px solid #28a745;
+        margin: 1rem 0;
     }
     .death-card {
-        background-color: #ffe8e8;
-        padding: 1rem;
+        background-color: #f8d7da;
+        padding: 1.5rem;
         border-radius: 0.5rem;
-        border-left: 4px solid #ff6b6b;
+        border-left: 4px solid #dc3545;
+        border: 2px solid #dc3545;
+        margin: 1rem 0;
+    }
+    .survival-card h2, .survival-card h3 {
+        color: #155724 !important;
+        font-weight: bold !important;
+    }
+    .death-card h2, .death-card h3 {
+        color: #721c24 !important;
+        font-weight: bold !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -201,19 +213,19 @@ with tab1:
     with col1:
         st.subheader("🎯 Prediction Results")
         
-        # Large prediction display
+        # Large prediction display with fixed visibility
         if prediction == 1:
             st.markdown("""
             <div class="survival-card">
-                <h2 style="color: #51cf66; margin: 0;">✅ SURVIVED</h2>
-                <h3 style="margin: 0;">Survival Probability: {:.1%}</h3>
+                <h2 style="color: #155724; margin: 0; font-weight: bold;">✅ SURVIVED</h2>
+                <h3 style="margin: 0; color: #155724; font-weight: bold;">Survival Probability: {:.1%}</h3>
             </div>
             """.format(probability[1]), unsafe_allow_html=True)
         else:
             st.markdown("""
             <div class="death-card">
-                <h2 style="color: #ff6b6b; margin: 0;">❌ DID NOT SURVIVE</h2>
-                <h3 style="margin: 0;">Survival Probability: {:.1%}</h3>
+                <h2 style="color: #721c24; margin: 0; font-weight: bold;">❌ DID NOT SURVIVE</h2>
+                <h3 style="margin: 0; color: #721c24; font-weight: bold;">Survival Probability: {:.1%}</h3>
             </div>
             """.format(probability[1]), unsafe_allow_html=True)
 
@@ -226,7 +238,7 @@ with tab1:
             delta = {'reference': 50},
             gauge = {
                 'axis': {'range': [None, 100]},
-                'bar': {'color': "#51cf66" if probability[1] > 0.5 else "#ff6b6b"},
+                'bar': {'color': "#28a745" if probability[1] > 0.5 else "#dc3545"},
                 'steps': [
                     {'range': [0, 25], 'color': "#ffcccc"},
                     {'range': [25, 50], 'color': "#ffe6cc"},
@@ -311,7 +323,7 @@ with tab1:
         go.Bar(name='Probability', 
                x=['Death', 'Survival'], 
                y=[probability[0], probability[1]],
-               marker_color=['#ff6b6b', '#51cf66'],
+               marker_color=['#dc3545', '#28a745'],
                text=[f'{probability[0]:.1%}', f'{probability[1]:.1%}'],
                textposition='auto')
     ])
@@ -666,6 +678,6 @@ with tab5:
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center'>
-    <p>Built with ❤️ by Adhiraj | Data Science Project | 2025</p>
+    <p>Built with ❤️ by Adhiraj | 2025</p>
 </div>
 """, unsafe_allow_html=True)
