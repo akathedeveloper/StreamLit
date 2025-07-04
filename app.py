@@ -5,13 +5,12 @@ import joblib
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import seaborn as sns
-import matplotlib.pyplot as plt
 import re
+import os
 
 # Page configuration
 st.set_page_config(
-    page_title="Titanic Survival Predictor",
+    page_title="🚢 Enhanced Titanic Survival Predictor",
     page_icon="🚢",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -43,11 +42,21 @@ st.markdown("""
 
 # Load model and encoders
 @st.cache_resource
-def load_model_and_encoders():
-    model = joblib.load('titanic_model.pkl')
-    encoders = joblib.load('label_encoders.pkl')
-    features = joblib.load('feature_names.pkl')
-    return model, encoders, features
+def load_or_train_model():
+    if (os.path.exists('titanic_model.pkl') and 
+        os.path.exists('label_encoders.pkl') and 
+        os.path.exists('feature_names.pkl')):
+        
+        model = joblib.load('titanic_model.pkl')
+        encoders = joblib.load('label_encoders.pkl')
+        features = joblib.load('feature_names.pkl')
+        return model, encoders, features
+    else:
+        # Train model if files don't exist
+        with st.spinner("Training model for the first time... This may take a moment."):
+            from train_model import prepare_and_train
+            model, encoders, features = prepare_and_train()
+            return model, encoders, features
 
 @st.cache_data
 def load_titanic_data():
@@ -55,10 +64,14 @@ def load_titanic_data():
     return pd.read_csv(url)
 
 # Load resources
-model, encoders, feature_names = load_model_and_encoders()
-titanic_data = load_titanic_data()
+try:
+    model, encoders, feature_names = load_or_train_model()
+    titanic_data = load_titanic_data()
+except Exception as e:
+    st.error(f"Error loading model or data: {e}")
+    st.stop()
 
-# Header with animation
+# Header
 st.markdown("""
 # 🚢 Enhanced Titanic Survival Predictor
 ### *Predicting survival on the RMS Titanic using advanced machine learning*
@@ -121,14 +134,12 @@ with tab1:
     else:
         age_group = "Senior"
 
-    # Fare group (quintiles)
-    if fare <= 7.55:
-        fare_group = "Very Low"
-    elif fare <= 8.05:
+    # Fare group (quartiles)
+    if fare <= 7.91:
         fare_group = "Low"
-    elif fare <= 15.74:
+    elif fare <= 14.45:
         fare_group = "Medium"
-    elif fare <= 33.31:
+    elif fare <= 31.0:
         fare_group = "High"
     else:
         fare_group = "Very High"
@@ -146,25 +157,43 @@ with tab1:
     ticket_prefix_match = re.search(r'([A-Za-z]+)', ticket)
     ticket_prefix = ticket_prefix_match.group(1) if ticket_prefix_match else "None"
 
-    # Create input dataframe
-    input_data = pd.DataFrame({
-        'Pclass': [pclass],
-        'Sex': [encoders['Sex'].transform([sex])[0]],
-        'Age': [age],
-        'SibSp': [sibsp],
-        'Parch': [parch],
-        'Fare': [fare],
-        'Embarked': [encoders['Embarked'].transform([embarked_code])[0]],
-        'FamilySize': [family_size],
-        'IsAlone': [is_alone],
-        'Title': [encoders['Title'].transform([title])[0]],
-        'AgeGroup': [encoders['AgeGroup'].transform([age_group])[0]],
-        'FareGroup': [encoders['FareGroup'].transform([fare_group])[0]]
-    })
-
-    # Make prediction
-    prediction = model.predict(input_data)[0]
-    probability = model.predict_proba(input_data)[0]
+    # Create input dataframe with ALL required features
+    try:
+        input_data = pd.DataFrame({
+            'Pclass': [pclass],
+            'Sex': [encoders['Sex'].transform([sex])[0]],
+            'Age': [age],
+            'SibSp': [sibsp],
+            'Parch': [parch],
+            'Fare': [fare],
+            'Embarked': [encoders['Embarked'].transform([embarked_code])[0]],
+            'FamilySize': [family_size],
+            'IsAlone': [is_alone],
+            'Title': [encoders['Title'].transform([title])[0]],
+            'AgeGroup': [encoders['AgeGroup'].transform([age_group])[0]],
+            'FareGroup': [encoders['FareGroup'].transform([fare_group])[0]],
+            'Age_Class': [age_class],
+            'Fare_Per_Person': [fare_per_person],
+            'Title_Pclass': [encoders['Title_Pclass'].transform([title_pclass])[0]],
+            'Deck': [encoders['Deck'].transform([deck])[0]],
+            'HasCabin': [has_cabin],
+            'TicketPrefix': [encoders['TicketPrefix'].transform([ticket_prefix])[0]]
+        })
+        
+        # Ensure column order matches training data
+        input_data = input_data[feature_names]
+        
+        # Make prediction
+        prediction = model.predict(input_data)[0]
+        probability = model.predict_proba(input_data)[0]
+        
+    except KeyError as e:
+        st.error(f"Feature encoding error: {str(e)}")
+        st.info("Some feature values may not have been seen during training. Please try different values.")
+        st.stop()
+    except Exception as e:
+        st.error(f"Prediction error: {str(e)}")
+        st.stop()
 
     # Main prediction display
     col1, col2, col3 = st.columns([2, 1, 1])
@@ -631,14 +660,12 @@ with tab5:
     it's important to remember that behind each data point was a real person with hopes, 
     dreams, and families. The Titanic disaster led to significant improvements in 
     maritime safety regulations that continue to save lives today.
-    
-    **"The way to get started is to quit talking and begin doing."** - Walt Disney
     """)
 
 # Footer
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center'>
-    <p>Built with ❤️ using Streamlit | Data Science Project | 2025</p>
+    <p>Built with ❤️ by Adhiraj | Data Science Project | 2025</p>
 </div>
 """, unsafe_allow_html=True)
